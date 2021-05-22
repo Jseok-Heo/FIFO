@@ -1,0 +1,3 @@
+-i ${RTL_DIR}
+${RTL_DIR}/ASYNC_FIFO.v
+${RTL_DIR}/FIFO_MEM.v
