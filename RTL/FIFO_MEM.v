@@ -26,7 +26,7 @@ module FIFO_MEM
         );
     `else
     // RTL Verilog memory model
-    localparam DEPTH = 1<<AW
+    localparam DEPTH = 1<<AW;
     reg [DW-1:0] mem [0:DEPTH-1];
 
     assign O_RD_DATA = mem[I_RD_ADDR];
