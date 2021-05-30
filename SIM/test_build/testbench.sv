@@ -15,6 +15,10 @@ module testbench;
     reg             r_rd_req    ;
     wire [DW-1:0]   w_rd_data   ;
     wire            w_rd_empty  ;
+    logic [DW-1:0]  l_fifo_wr_queue[$];
+    logic [DW-1:0]  l_fifo_rd_queue[$];
+
+    int i;
     
     ASYNC_FIFO
     #(
@@ -25,8 +29,8 @@ module testbench;
     (
         .I_WR_CLK   ( r_wr_clk   ) // input           I_WR_CLK
        ,.I_WR_RST_N ( r_wr_rst_n ) // input           I_WR_RST_N
-       ,.I_WR_DATA  ( r_wr_data  ) // input  [DW-1:0] I_WR_DATA
-       ,.I_WR_REQ   ( r_wr_req   ) // input           I_WR_REQ
+       ,.I_WR_DATA  ( r_wr_data  ) // input  [DW-1:0] I_WR_DATA 
+       ,.I_WR_REQ   ( r_wr_req   ) // input           I_WR_REQ 
        ,.O_WR_FULL  ( w_wr_full  ) // output          O_WR_FULL
        ,.I_RD_CLK   ( r_rd_clk   ) // input           I_RD_CLK
        ,.I_RD_RST_N ( r_rd_rst_n ) // input           I_RD_RST_N
@@ -38,7 +42,6 @@ module testbench;
     initial begin
         forever #(WR_CLK_PERIOD/2) r_wr_clk = ~r_wr_clk;
     end
-   
     initial begin
         forever #(RD_CLK_PERIOD/2) r_rd_clk = ~r_rd_clk;
     end
@@ -51,11 +54,28 @@ module testbench;
 
         #100; r_wr_rst_n = 1;
 
-        repeat(100) begin
+//        repeat(100) begin
+//            @(posedge r_wr_clk);
+//            #1;
+//            r_wr_data = $random();
+//            r_wr_req = $random();
+//            if(r_wr_req == 1 && !w_wr_full) l_fifo_wr_queue.push_front(r_wr_data);
+//        end
+        repeat(5) begin
             @(posedge r_wr_clk);
-            r_wr_data = $random();
-            r_wr_req = $random();
+            #1;
+            if(!w_wr_full) begin
+                r_wr_req = 1;
+                r_wr_data = $random();
+                l_fifo_wr_queue.push_front(r_wr_data);
+            end
+            else begin
+                r_wr_req = 0;
+            end
         end
+
+        @(posedge r_wr_clk);
+        #1; r_wr_req = 0;
     end
 
     initial begin
@@ -66,14 +86,47 @@ module testbench;
 
         #80; r_rd_rst_n = 1;
 
-        repeat(100) begin
+        repeat(5) begin
             @(posedge r_rd_clk);
-            r_rd_req = $random();
+            #1;
+            if(!w_rd_empty) begin
+                r_rd_req = 1;
+                l_fifo_rd_queue.push_front(w_rd_data);
+            end
+            else begin
+                r_rd_req = 0;
+            end
         end
+
+        @(posedge r_rd_clk);
+        #1; r_rd_req = 0;
     end
 
+    task compare;
+        logic [DW-1:0] wr_data;
+        logic [DW-1:0] rd_data;
+
+        for(i=0; i<l_fifo_wr_queue.size(); i=i+1) begin
+            wr_data = l_fifo_wr_queue.pop_back();
+            rd_data = l_fifo_rd_queue.pop_back();
+            $display("==============================");
+            $display("wr_data = %0h", wr_data);
+            $display("rd_data = %0h", rd_data);
+
+            if(wr_data != rd_data) begin
+                $display("*E, wr_data = %0x, rd_data = 0%x are different", wr_data, rd_data);
+                $finish();
+            end
+            $display("==============================");
+        end
+
+        $display("Test Completed!");
+    endtask: compare
+
     initial begin
-        #10000; $finish();
+        #10000; 
+        compare();
+        $finish();
     end
 
 endmodule: testbench

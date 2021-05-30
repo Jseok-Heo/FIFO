@@ -31,7 +31,7 @@ module FIFO_WR
     assign O_WR_ADDR = r_wr_binary[AW-1:0];
 
     assign w_wr_binary_next = r_wr_binary + {{AW{1'b0}}, I_WR_EN};
-    assign w_wr_gray_next   = (r_wr_gray >>1) ^ w_wr_binary_next;
+    assign w_wr_gray_next   = (w_wr_binary_next >>1) ^ w_wr_binary_next;
 
     assign w_wr_full = (w_wr_gray_next == {~I_WR_RD_PTR[AW:AW-1],I_WR_RD_PTR[AW-2:0]});
 
